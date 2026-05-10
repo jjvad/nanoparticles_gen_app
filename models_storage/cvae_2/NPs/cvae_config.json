@@ -1,0 +1,6 @@
+{"latent_dim": 16, "input_dim": 18, "cond_dim": 2, "required_features": ["coresize", "surfcharge"], "categorical_features": [],
+
+  "numerical_features": [
+    "coresize",
+    "surfcharge"
+  ]}

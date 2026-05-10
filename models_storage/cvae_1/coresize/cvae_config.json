@@ -1,0 +1,5 @@
+{"latent_dim": 16, "input_dim": 19, "cond_dim": 1, "required_features": ["coresize"], "categorical_features": [],
+
+  "numerical_features": [
+    "coresize"
+  ]}

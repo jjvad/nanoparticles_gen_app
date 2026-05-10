@@ -1,9 +1,10 @@
 from app.models.cvae_pipeline import CVAEPipeline
 
-models = {}
+loaded_models = {}
 
-def load_models():
-    models["cvae"] = CVAEPipeline.load("/models/cvae_3")
 
-def get_model(name: str):
-    return models.get(name)
+def get_model(model_path: str):
+    if model_path not in loaded_models:
+        loaded_models[model_path] = CVAEPipeline.load(model_path)
+
+    return loaded_models[model_path]

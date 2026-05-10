@@ -52,21 +52,27 @@ class CVAEPipeline:
         df = pd.DataFrame([conditions])
 
         # 2. признаки
-        cat_cols = ['NPs']
-        num_cols = ['coresize', 'surfcharge']
+        cat_cols = self.config["categorical_features"]
+        num_cols = self.config["numerical_features"]
 
-        # 3. OHE
-        cat_encoded = self.ohe.transform(df[cat_cols])
-        if hasattr(cat_encoded, "toarray"):
-            cat_encoded = cat_encoded.toarray()
+        # categorical
+        if len(cat_cols) > 0:
+            cat_encoded = self.ohe.transform(df[cat_cols])
 
-        # 4. числовые
-        num_data = df[num_cols].values
+            if hasattr(cat_encoded, "toarray"):
+                cat_encoded = cat_encoded.toarray()
+        else:
+            cat_encoded = np.empty((1, 0))
 
-        # 5. объединяем → это C
+        # numerical
+        if len(num_cols) > 0:
+            num_data = df[num_cols].values
+        else:
+            num_data = np.empty((1, 0))
+
+        # порядок как в обучении
         C = np.hstack([cat_encoded, num_data])
 
-        # ❗ ВАЖНО: НЕТ scaling для C
         C_tensor = torch.tensor(C, dtype=torch.float32)
 
         samples = []

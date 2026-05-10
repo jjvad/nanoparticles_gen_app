@@ -2,8 +2,11 @@ from pydantic import BaseModel
 from typing import Dict, Any, List
 
 class GenerateRequest(BaseModel):
-    properties: Dict[str, Any]
+    properties: dict
+    n_samples: int = 1
 
 class GenerateResponse(BaseModel):
-    results: List[Dict[str, Any]]
     model_used: str
+    input_properties: dict
+    generated_count: int
+    results: list[dict[str, Any]]
