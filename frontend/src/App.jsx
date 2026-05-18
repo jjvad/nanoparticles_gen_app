@@ -5,57 +5,73 @@ import "./App.css";
 const MATERIALS = ["Al2O3", "CuO", "Fe2O3", "TiO2", "ZnO"];
 
 export default function App() {
-  const [material, setMaterial] = useState(MATERIALS[0]);
+  const [material, setMaterial] = useState("");
   const [coreSize, setCoreSize] = useState("");
   const [surfCharge, setSurfCharge] = useState("");
   const [count, setCount] = useState(1);
-  const [results, setResults] = useState([]);
+
+  const [generationData, setGenerationData] = useState(null);
 
   const generate = async () => {
+    const properties = {};
+
+    if (material) {
+      properties.NPs = material;
+    }
+
+    if (coreSize !== "") {
+      properties.coresize = Number(coreSize);
+    }
+
+    if (surfCharge !== "") {
+      properties.surfcharge = Number(surfCharge);
+    }
+
     const res = await axios.post("/api/generate", {
-      properties: {
-        NPs: material,
-        coresize: Number(coreSize),
-        surfcharge: Number(surfCharge),
-      },
+      properties,
       n_samples: Number(count),
     });
 
-    setResults(res.data.results);
+    setGenerationData(res.data);
   };
 
   const downloadCSV = async () => {
-    if (!results.length) return;
+    if (!generationData) return;
 
     const res = await axios.post(
       "/api/generate/csv",
-      {
-        model_used: "frontend-model", // 👈 добавили обязательное поле
-        input_properties: {
-          NPs: material,
-          coresize: Number(coreSize),
-          surfcharge: Number(surfCharge),
-        },
-        generated_count: results.length, // 👈 важно для backend
-        results: results,
-      },
+      generationData,
       {
         responseType: "blob",
       }
     );
 
-    // ❗ axios уже вернул blob — НЕ нужно создавать новый Blob
-    const url = window.URL.createObjectURL(res.data);
+    const blob = new Blob([res.data], {
+      type: "text/csv",
+    });
+
+    const url = window.URL.createObjectURL(blob);
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "nanoparticles");
+
+    link.download = "nanoparticles.csv";
 
     document.body.appendChild(link);
+
     link.click();
+
     link.remove();
 
     window.URL.revokeObjectURL(url);
+  };
+
+  const formatValue = (value) => {
+    if (typeof value === "number") {
+      return value.toFixed(4);
+    }
+
+    return value;
   };
 
   return (
@@ -63,59 +79,94 @@ export default function App() {
       <h1>Nanoparticle Generator</h1>
 
       <div className="form">
-        <select value={material} onChange={(e) => setMaterial(e.target.value)}>
-          {MATERIALS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
+        <div className="input-group">
+          <label>Nanoparticle Material</label>
 
-        <input
-          placeholder="Core size"
-          value={coreSize}
-          onChange={(e) => setCoreSize(e.target.value)}
-        />
+          <select
+            value={material}
+            onChange={(e) => setMaterial(e.target.value)}
+          >
+            <option value="">Not selected</option>
 
-        <input
-          placeholder="Surface charge"
-          value={surfCharge}
-          onChange={(e) => setSurfCharge(e.target.value)}
-        />
+            {MATERIALS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <input
-          type="number"
-          min="1"
-          placeholder="Count"
-          value={count}
-          onChange={(e) => setCount(e.target.value)}
-        />
+        <div className="input-group">
+          <label>Core Size</label>
 
-        <button onClick={generate}>Generate</button>
+          <input
+            type="number"
+            placeholder="Enter core size"
+            value={coreSize}
+            onChange={(e) => setCoreSize(e.target.value)}
+          />
+        </div>
 
-        <button onClick={downloadCSV} disabled={!results.length}>
-          Download CSV
-        </button>
+        <div className="input-group">
+          <label>Surface Charge</label>
+
+          <input
+            type="number"
+            placeholder="Enter surface charge"
+            value={surfCharge}
+            onChange={(e) => setSurfCharge(e.target.value)}
+          />
+        </div>
+
+        <div className="input-group">
+          <label>Samples Count</label>
+
+          <input
+            type="number"
+            min="1"
+            value={count}
+            onChange={(e) => setCount(e.target.value)}
+          />
+        </div>
+
+        <div className="buttons">
+          <button className="primary-btn" onClick={generate}>
+            Generate
+          </button>
+
+          <button
+            className="secondary-btn"
+            onClick={downloadCSV}
+            disabled={!generationData?.results?.length}
+          >
+            Download CSV
+          </button>
+        </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            {results[0] &&
-              Object.keys(results[0]).map((k) => <th key={k}>{k}</th>)}
-          </tr>
-        </thead>
+      {generationData?.results?.length > 0 && (
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                {Object.keys(generationData.results[0]).map((k) => (
+                  <th key={k}>{k}</th>
+                ))}
+              </tr>
+            </thead>
 
-        <tbody>
-          {results.map((r, i) => (
-            <tr key={i}>
-              {Object.values(r).map((v, j) => (
-                <td key={j}>{v}</td>
+            <tbody>
+              {generationData.results.map((row, i) => (
+                <tr key={i}>
+                  {Object.values(row).map((value, j) => (
+                    <td key={j}>{formatValue(value)}</td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
